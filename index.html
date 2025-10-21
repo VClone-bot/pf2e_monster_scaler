@@ -53,20 +53,28 @@ title: PF2e Monster Scaler
                         <strong>AoN link to statblock</strong>
                         <input id="aonLink" type="text" placeholder="https://2e.aonprd.com/Monsters.aspx?ID=..." inputmode="url" />
                     </label>
+                <h3>Import from file</h3>
+                <div class="dropzone" id="filedrop-panel">
+                    <p><strong>Drop a PDF/PNG/JPG file of your statblock or <label class="pill" for="fileInput" style="cursor:pointer;">browse</label></strong></p>
+                    <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
+                    <p class="muted" id="fileStatus">No file selected.</p>
+                </div>
 
-                    <div class="dropzone" id="filedrop-panel">
-                        <p><strong>Drop a PDF/PNG/JPG file of your statblock or <label class="pill" for="fileInput" style="cursor:pointer;">browse</label></strong></p>
-                        <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
-                        <p class="muted" id="fileStatus">No file selected.</p>
-                    </div>
-
-                    <div class="controls">
-                        <button class="btn" id="btnImportLink">Import from AoN</button>
-                        <button class="btn" id="btnImportFile">Import from file</button>
-                        <button class="btn ghost" id="btnClearImport">Clear</button>
-                    </div>
+                <div class="controls">
+                    <button class="btn" id="btnImportLink">Import from AoN</button>
+                    <button class="btn" id="btnImportFile">Import from file</button>
+                    <button class="btn ghost" id="btnClearImport">Clear</button>
+                </div>
                 </div>
             </div>
         </section>
+    </div>
+
+    <div class="grid grid-2">
+
+    </div>
+
+    <div class="grid grid-2">
+
     </div>
 </div>
