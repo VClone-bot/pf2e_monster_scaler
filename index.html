@@ -11,7 +11,9 @@ title: PF2e Monster Scaler
   }
   .wrap { max-width: 1100px; margin: 0 auto; }
   .grid { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
-  @media (min-width: 980px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 980px) {
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+  }
   .card { background: #fff; border: 1px solid #eaeaea; border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem; }
   .card h2, .card h3 { margin-top: 0; }
   .row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: center; }
@@ -20,7 +22,13 @@ title: PF2e Monster Scaler
   .btn[disabled] { opacity: .6; cursor: not-allowed; }
   .btn.primary { background: #0a7cff; color: #fff; border-color: #0a7cff; }
   .btn.ghost { background: transparent; }
-  textarea, input[type="text"], input[type="number"] { width: 100%; padding: .7rem .8rem; border: 1px solid #d9d9d9; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: .7rem .8rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
   textarea { min-height: 220px; resize: vertical; }
   .muted { color: #666; font-size: .9rem; }
   .dropzone { border: 2px dashed #bdbdbd; border-radius: var(--radius); padding: 1rem; text-align: center; transition: background .2s, border-color .2s; }
@@ -29,59 +37,45 @@ title: PF2e Monster Scaler
   .stat-preview { background: #fcfcfc; border: 1px solid #eee; border-radius: var(--radius); padding: 1rem; font-family: Georgia, "Times New Roman", Times, serif; }
   .statline { display: grid; grid-template-columns: 100px 1fr; gap: .5rem; margin-bottom: .2rem; }
   .footer-note { font-size: .8rem; color: #666; }
+  .subcard { border: 1px dashed #e0e0e0; border-radius: 10px; padding: .6rem; background: #fafafa; }
+  .subcard h3 { margin: .2rem 0 .4rem 0; font-size: 1rem; }
+  .subcard .muted { font-size: .8rem; }
 </style>
 
 <div class="wrap">
   <header>
     <h1>PF2e Monster Scaler</h1>
+    <p class="muted">Module 1: Web UI for manual input. Future modules will automate import and scaling.</p>
   </header>
 
   <div class="grid grid-2">
-    <!-- Import panel -->
-    <section class="card" id="import-panel">
-      <h2>Import a Statblock</h2>
-      <div class="grid">
-        <label>
-          <strong>Link to statblock</strong>
-          <input id="aonLink" type="text" placeholder="https://2e.aonprd.com/Monsters.aspx?ID=..." inputmode="url" />
-        </label>
-        <div class="dropzone" id="dropzone">
-          <p><strong>Drop a PDF/PNG/JPG here</strong> or <label class="pill" for="fileInput" style="cursor:pointer;">browse</label></p>
-          <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
-          <p class="muted" id="fileStatus">No file selected.</p>
-        </div>
-        <div class="controls">
-          <button class="btn" id="btnImportLink" title="Parse later via dataloader" disabled>Import from link (coming soon)</button>
-          <button class="btn" id="btnImportFile" title="Parse later via dataloader" disabled>Import from file (coming soon)</button>
-          <button class="btn ghost" id="btnSample">Load sample goblin</button>
-          <button class="btn ghost" id="btnClearImport">Clear</button>
-        </div>
-        <p class="muted">Parsing from Archives of Nethys or PDF/image will be added in Module 2.</p>
-      </div>
-    </section>
-
-    <!-- Level and actions -->
-    <section class="card" id="level-panel">
-      <h2>Target Level</h2>
-      <div class="grid">
-        <label>
-          <strong>New Level</strong>
-          <input id="targetLevel" type="number" min="-1" max="24" step="1" value="1" />
-        </label>
-        <div class="controls">
-          <button class="btn primary" id="btnApply">Apply scaling</button>
-          <button class="btn" id="btnReset">Reset</button>
-        </div>
-        <p class="muted">Valid levels: −1 to 24 per PF2e guidelines.</p>
-      </div>
-    </section>
-  </div>
-
-  <div class="grid grid-2">
-    <!-- Original stats -->
+    <!-- Original Statblock -->
     <section class="card" id="original-panel">
       <h2>Original Statblock</h2>
-      <p class="muted">Paste or edit. JSON is preferred. Plain text allowed. Auto-fill hooks are wired for Module 2.</p>
+      <p class="muted">Paste or edit the monster data here. JSON preferred.</p>
+
+      <div class="subcard" id="import-panel">
+        <h3>Import a Statblock</h3>
+        <div class="grid">
+          <label>
+            <strong>Link to statblock</strong>
+            <input id="aonLink" type="text" placeholder="https://2e.aonprd.com/Monsters.aspx?ID=..." inputmode="url" />
+          </label>
+          <div class="dropzone" id="dropzone">
+            <p><strong>Drop a PDF/PNG/JPG here</strong> or <label class="pill" for="fileInput" style="cursor:pointer;">browse</label></p>
+            <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
+            <p class="muted" id="fileStatus">No file selected.</p>
+          </div>
+          <div class="controls">
+            <button class="btn" id="btnImportLink" disabled>Import from link (coming soon)</button>
+            <button class="btn" id="btnImportFile" disabled>Import from file (coming soon)</button>
+            <button class="btn ghost" id="btnSample">Load sample goblin</button>
+            <button class="btn ghost" id="btnClearImport">Clear</button>
+          </div>
+          <p class="muted">Parsing from AoN or PDF/image will be added in Module 2.</p>
+        </div>
+      </div>
+
       <textarea id="originalStats" placeholder='{
   "name": "Goblin Warrior",
   "level": 1,
@@ -101,17 +95,33 @@ title: PF2e Monster Scaler
       </div>
     </section>
 
-    <!-- Updated stats + export -->
+    <!-- Updated Statblock -->
     <section class="card" id="updated-panel">
       <h2>Updated Statblock</h2>
-      <p class="muted">Generated by the scaling logic. Editable if you want manual tweaks.</p>
+
+      <div class="subcard" id="level-panel">
+        <div class="row">
+          <label style="width:100%">
+            <strong>Target Level</strong>
+            <input id="targetLevel" type="number" min="-1" max="24" step="1" value="1" />
+          </label>
+          <div class="controls">
+            <button class="btn primary" id="btnApply">Apply</button>
+            <button class="btn" id="btnReset">Reset</button>
+          </div>
+        </div>
+        <p class="muted">Valid levels: −1 to 24 per PF2e guidelines.</p>
+      </div>
+
+      <p class="muted">Generated by scaling logic (Module 3). You may also edit manually.</p>
       <textarea id="updatedStats" placeholder="Updated statblock will appear here…"></textarea>
       <div class="controls">
         <button class="btn primary" id="btnExportPng">Export preview to PNG</button>
         <button class="btn" id="btnCopy">Copy JSON</button>
       </div>
+
       <h3>Preview</h3>
-      <div id="preview" class="stat-preview" role="img" aria-label="Statblock preview for export">
+      <div id="preview" class="stat-preview" role="img">
         <div id="previewHeader" style="font-weight:700; font-size:1.4rem; margin-bottom:.25rem;">Name • Level ?</div>
         <div class="statline"><div><strong>Traits</strong></div><div id="pvTraits">—</div></div>
         <div class="statline"><div><strong>AC</strong></div><div id="pvAC">—</div></div>
@@ -122,19 +132,8 @@ title: PF2e Monster Scaler
       </div>
     </section>
   </div>
-
-  <section class="card">
-    <h2>Developer Hooks</h2>
-    <ul>
-      <li><code>window.dataloader.importFromLink(url)</code> → fills <em>Original Statblock</em> later.</li>
-      <li><code>window.dataloader.importFromFile(file)</code> → fills <em>Original Statblock</em> later.</li>
-      <li><code>window.scaler.scale(monsterJson, targetLevel)</code> → returns updated JSON.</li>
-    </ul>
-    <p class="muted">This page ships with no external build step. All logic is inlined for GitHub Pages.</p>
-  </section>
 </div>
 
-<!-- html2canvas for PNG export -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha256-iwW2C5Yj2mTt8VZ6sVwR3g2i3dC0k6kz8Guk9Qy4wXk=" crossorigin="anonymous"></script>
 
 <script>
@@ -155,7 +154,6 @@ title: PF2e Monster Scaler
   const validateMsg = el('#validateMsg');
   const btnExportPng = el('#btnExportPng');
   const btnCopy = el('#btnCopy');
-
   const pvHeader = el('#previewHeader');
   const pvTraits = el('#pvTraits');
   const pvAC = el('#pvAC');
@@ -165,53 +163,31 @@ title: PF2e Monster Scaler
   const preview = el('#preview');
 
   window.dataloader = {
-    importFromLink: async function(url){
-      console.warn('dataloader.importFromLink not implemented yet:', url);
-      return null;
-    },
-    importFromFile: async function(file){
-      console.warn('dataloader.importFromFile not implemented yet:', file?.name);
-      return null;
-    }
+    importFromLink: async function(url){ console.warn('dataloader.importFromLink not implemented yet:', url); return null; },
+    importFromFile: async function(file){ console.warn('dataloader.importFromFile not implemented yet:', file?.name); return null; }
   };
-
   window.scaler = {
-    scale: function(monster, newLevel){
-      const out = JSON.parse(JSON.stringify(monster));
-      out.level = Number(newLevel);
-      return out;
-    }
+    scale: function(monster, newLevel){ const out = JSON.parse(JSON.stringify(monster)); out.level = Number(newLevel); return out; }
   };
 
-  // Helpers
-  function parseMaybeJSON(text){
-    try { return JSON.parse(text); } catch { return null; }
-  }
-  function setValidate(status, msg){
-    validateMsg.textContent = msg;
-    validateMsg.style.color = status ? 'green' : '#a33';
-  }
+  function parseMaybeJSON(text){ try { return JSON.parse(text); } catch { return null; } }
+  function setValidate(status, msg){ validateMsg.textContent = msg; validateMsg.style.color = status ? 'green' : '#a33'; }
   function pretty(obj){ return JSON.stringify(obj, null, 2); }
   function renderPreview(obj){
     if(!obj || typeof obj !== 'object'){ pvHeader.textContent = 'Name • Level ?'; pvTraits.textContent = '—'; pvAC.textContent = '—'; pvHP.textContent = '—'; pvSpeed.textContent = '—'; pvAttacks.textContent = '—'; return; }
-    const name = obj.name || 'Unknown';
-    const level = (obj.level ?? '?');
-    pvHeader.textContent = `${name} • Level ${level}`;
-    const traits = Array.isArray(obj.traits) ? obj.traits.join(', ') : (obj.traits || '—');
-    pvTraits.textContent = traits || '—';
-    pvAC.textContent = (obj.ac ?? '—');
-    pvHP.textContent = (obj.hp ?? '—');
-    pvSpeed.textContent = (obj.speed ?? '—');
-    const attacks = Array.isArray(obj.attacks) ? obj.attacks.map(a => `${a.name} ${a.attack ?? ''} (${a.damage ?? ''})`).join(' • ') : '—';
-    pvAttacks.textContent = attacks || '—';
+    pvHeader.textContent = `${obj.name || 'Unknown'} • Level ${obj.level ?? '?'}`;
+    pvTraits.textContent = Array.isArray(obj.traits) ? obj.traits.join(', ') : (obj.traits || '—');
+    pvAC.textContent = obj.ac ?? '—';
+    pvHP.textContent = obj.hp ?? '—';
+    pvSpeed.textContent = obj.speed ?? '—';
+    pvAttacks.textContent = Array.isArray(obj.attacks) ? obj.attacks.map(a => `${a.name} ${a.attack ?? ''} (${a.damage ?? ''})`).join(' • ') : '—';
   }
 
-  // Events: drag/drop
-  ;['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('dragover'); }));
-  ;['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('dragover'); }));
+  ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('dragover'); }));
   dropzone.addEventListener('drop', async e => {
     const file = e.dataTransfer.files?.[0];
-    if(!file){ return; }
+    if(!file) return;
     fileStatus.textContent = `Selected: ${file.name} (${Math.round(file.size/1024)} KB)`;
     fileInput.files = e.dataTransfer.files;
     await window.dataloader.importFromFile(file);
@@ -222,81 +198,31 @@ title: PF2e Monster Scaler
     fileStatus.textContent = file ? `Selected: ${file.name} (${Math.round(file.size/1024)} KB)` : 'No file selected.';
   });
 
-  // Buttons
   btnSample.addEventListener('click', () => {
-    const sample = {
-      name: 'Goblin Warrior',
-      level: 1,
-      traits: ['Goblin','Humanoid'],
-      perception: '+6',
-      languages: ['Goblin'],
-      skills: { Acrobatics: '+7' },
-      str: 0, dex: 3, con: 1, int: -1, wis: 1, cha: 0,
-      ac: 16,
-      hp: 16,
-      speed: '25 feet',
-      attacks: [ { name: 'Dogslicer', attack: '+7', damage: '1d6+3 slashing' } ]
-    };
+    const sample = { name: 'Goblin Warrior', level: 1, traits: ['Goblin','Humanoid'], perception: '+6', languages: ['Goblin'], skills: { Acrobatics: '+7' }, str:0,dex:3,con:1,int:-1,wis:1,cha:0, ac:16, hp:16, speed:'25 feet', attacks:[{name:'Dogslicer',attack:'+7',damage:'1d6+3 slashing'}] };
     originalStats.value = pretty(sample);
     setValidate(true, 'Loaded sample.');
     renderPreview(sample);
   });
-
-  btnClearImport.addEventListener('click', () => {
-    aonLink.value = '';
-    fileInput.value = '';
-    fileStatus.textContent = 'No file selected.';
-  });
-
-  btnValidate.addEventListener('click', () => {
-    const parsed = parseMaybeJSON(originalStats.value);
-    if(parsed){ setValidate(true, 'Valid JSON.'); renderPreview(parsed); }
-    else { setValidate(false, 'Not valid JSON. Plain text is allowed but scaling expects JSON.'); }
-  });
-
+  btnClearImport.addEventListener('click', () => { aonLink.value = ''; fileInput.value = ''; fileStatus.textContent = 'No file selected.'; });
+  btnValidate.addEventListener('click', () => { const parsed = parseMaybeJSON(originalStats.value); if(parsed){ setValidate(true,'Valid JSON.'); renderPreview(parsed);} else setValidate(false,'Invalid JSON.'); });
   btnApply.addEventListener('click', () => {
     const lvl = Number(targetLevel.value);
     if(!Number.isFinite(lvl) || lvl < -1 || lvl > 24){ alert('Level must be between -1 and 24.'); return; }
     const src = parseMaybeJSON(originalStats.value);
-    if(!src){ alert('Provide valid JSON to scale.'); return; }
+    if(!src){ alert('Provide valid JSON.'); return; }
     const out = window.scaler.scale(src, lvl);
     updatedStats.value = pretty(out);
     renderPreview(out);
   });
-
-  btnReset.addEventListener('click', () => {
-    targetLevel.value = 1;
-    updatedStats.value = '';
-    setValidate(true, 'Reset done.');
-    renderPreview(parseMaybeJSON(originalStats.value));
-  });
-
-  btnCopy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(updatedStats.value || ''); } catch {}
-  });
-
+  btnReset.addEventListener('click', () => { targetLevel.value = 1; updatedStats.value = ''; renderPreview(parseMaybeJSON(originalStats.value)); });
+  btnCopy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(updatedStats.value || ''); } catch {} });
   btnExportPng.addEventListener('click', async () => {
-    const node = preview;
-    const canvas = await html2canvas(node, { useCORS: true, backgroundColor: '#ffffff', scale: 2 });
+    const canvas = await html2canvas(preview, { useCORS: true, backgroundColor: '#ffffff', scale: 2 });
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pf2e-statblock.png';
-    a.click();
+    a.href = url; a.download = 'pf2e-statblock.png'; a.click();
   });
-
-  originalStats.addEventListener('input', () => {
-    const parsed = parseMaybeJSON(originalStats.value);
-    if(parsed){ renderPreview(parsed); validateMsg.textContent = ''; }
-  });
-
-  try {
-    const url = new URL(window.location.href);
-    const q = url.searchParams.get('level');
-    if(q !== null){ targetLevel.value = q; }
-  } catch {}
-
-  dropzone.setAttribute('tabindex', '0');
-  dropzone.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' '){ fileInput.click(); } });
+  originalStats.addEventListener('input', () => { const parsed = parseMaybeJSON(originalStats.value); if(parsed){ renderPreview(parsed); validateMsg.textContent = ''; }});
 })();
 </script>
