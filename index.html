@@ -67,7 +67,7 @@ title: PF2e Monster Scaler
             <p class="muted" id="fileStatus">No file selected.</p>
           </div>
           <div class="controls">
-            <button class="btn" id="btnImportLink" disabled>Import from link (coming soon)</button>
+            <button class="btn" id="btnImportLink" disabled>Import from link</button>
             <button class="btn" id="btnImportFile" disabled>Import from file (coming soon)</button>
             <button class="btn ghost" id="btnSample">Load sample goblin</button>
             <button class="btn ghost" id="btnClearImport">Clear</button>
@@ -224,5 +224,28 @@ title: PF2e Monster Scaler
     a.href = url; a.download = 'pf2e-statblock.png'; a.click();
   });
   originalStats.addEventListener('input', () => { const parsed = parseMaybeJSON(originalStats.value); if(parsed){ renderPreview(parsed); validateMsg.textContent = ''; }});
+  
+  const btnImportLink = el('#btnImportLink');
+  btnImportLink.disabled = false;
+  btnImportLink.addEventListener('click', async () => {
+    const url = aonLink.value.trim();
+    if (!url) {
+      alert('Enter an Archives of Nethys URL first.');
+      return;
+    }
+    try {
+      const monster = await window.dataloader.importFromLink(url);
+      if (!monster) {
+        alert('Could not import monster data.');
+        return;
+      }
+      originalStats.value = JSON.stringify(monster, null, 2);
+      setValidate(true, 'Imported successfully.');
+      renderPreview(monster);
+    } catch (err) {
+      console.error(err);
+      alert('Error importing from AoN. Check console.');
+    }
+  });
 })();
 </script>
