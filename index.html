@@ -3,17 +3,6 @@ layout: default
 title: PF2e Monster Scaler
 ---
 
-<!--
-PF2e Monster Scaler UI
-- Designed for GitHub Pages with Jekyll Minima theme
-- Module 1: Web Interface only (no live scraping or OCR yet)
-- Hooks included for future dataloader + Python logic via WebAssembly/worker or API
-
-Files:
-- Keep this as index.md or index.html at repo root
-- Minima provides base typography and spacing
--->
-
 <style>
   :root {
     --gap: 1rem;
@@ -176,27 +165,21 @@ Files:
   const pvAttacks = el('#pvAttacks');
   const preview = el('#preview');
 
-  // Stub dataloader hooks for Module 2
   window.dataloader = {
     importFromLink: async function(url){
-      // Placeholder. Will fetch AoN or other pages, then parse.
       console.warn('dataloader.importFromLink not implemented yet:', url);
       return null;
     },
     importFromFile: async function(file){
-      // Placeholder. Will run OCR/PDF parse.
       console.warn('dataloader.importFromFile not implemented yet:', file?.name);
       return null;
     }
   };
 
-  // Scaler hook. Replace with real PF2e scaling in Module 3
   window.scaler = {
     scale: function(monster, newLevel){
-      // For now, return a shallow copy and override level
       const out = JSON.parse(JSON.stringify(monster));
       out.level = Number(newLevel);
-      // TODO: apply PF2e math here
       return out;
     }
   };
@@ -232,7 +215,6 @@ Files:
     if(!file){ return; }
     fileStatus.textContent = `Selected: ${file.name} (${Math.round(file.size/1024)} KB)`;
     fileInput.files = e.dataTransfer.files;
-    // Hook for future parser
     await window.dataloader.importFromFile(file);
   });
   dropzone.addEventListener('click', ()=> fileInput.click());
@@ -295,7 +277,6 @@ Files:
   });
 
   btnExportPng.addEventListener('click', async () => {
-    // Export only the styled preview for clean PNG
     const node = preview;
     const canvas = await html2canvas(node, { useCORS: true, backgroundColor: '#ffffff', scale: 2 });
     const url = canvas.toDataURL('image/png');
@@ -305,20 +286,17 @@ Files:
     a.click();
   });
 
-  // Live preview as user types valid JSON
   originalStats.addEventListener('input', () => {
     const parsed = parseMaybeJSON(originalStats.value);
     if(parsed){ renderPreview(parsed); validateMsg.textContent = ''; }
   });
 
-  // Init from query params
   try {
     const url = new URL(window.location.href);
     const q = url.searchParams.get('level');
     if(q !== null){ targetLevel.value = q; }
   } catch {}
 
-  // Minimal a11y: announce dropzone via keyboard
   dropzone.setAttribute('tabindex', '0');
   dropzone.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' '){ fileInput.click(); } });
 })();
