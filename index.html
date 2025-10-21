@@ -53,6 +53,7 @@ title: PF2e Monster Scaler
                         <strong>AoN link to statblock</strong>
                         <input id="aonLink" type="text" placeholder="https://2e.aonprd.com/Monsters.aspx?ID=..." inputmode="url" />
                     </label>
+
                 <h3>Import from file</h3>
                 <div class="dropzone" id="filedrop-panel">
                     <p><strong>Drop a PDF/PNG/JPG file of your statblock or <label class="pill" for="fileInput" style="cursor:pointer;">browse</label></strong></p>
@@ -71,10 +72,20 @@ title: PF2e Monster Scaler
     </div>
 
     <div class="grid grid-2">
+        <section class="card" id="original-stats">
+            <h2>Original stats</h2>
+        </section>
 
-    </div>
-
-    <div class="grid grid-2">
-
+        <section class="card" id="updated-stats">
+            <h2>Scaled stats</h2>
+            <div class="subcard" id="level-panel">
+                <div class="row">
+                    <label style="width:100%">
+                        <strong>Target Level</strong>
+                        <input id="targetLevel" type="number" min="-1" max="24" steps="1" value="-1"/>
+                    </label>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
