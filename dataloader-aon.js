@@ -1,217 +1,201 @@
 // dataloader-aon.js
-// Client-side AoN importer for GitHub Pages
+// Robust AoN importer for static sites (GitHub Pages)
 
-// Public API
 export async function importFromLink(url) {
-  assertAoN(url);
-  const html = await fetchWithFallback(url);
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const scope = pickScope(doc);
+  const { kind, body } = await fetchAoN(url);
+  const out = (kind === "html") ? parseHtml(body) : parseText(body);
 
-  const name = extractName(scope, doc);
-  const level = extractLevel(scope);
-  const traits = extractTraits(scope);
-  const ac = extractNumberAfter(scope, /\bAC\b/);
-  const hp = extractNumberAfter(scope, /\bHP\b/);
-  const speed = extractSpeed(scope);
-  const attacks = extractAttacks(scope);
-
-  // Basic sanity
-  const out = {
-    name: name || "Unknown",
-    level: Number.isFinite(level) ? level : null,
-    traits,
-    ac: Number.isFinite(ac) ? ac : null,
-    hp: Number.isFinite(hp) ? hp : null,
-    speed: speed || null,
-    attacks,
-  };
-  return out;
+  // Minimal sanity: must have a name or level or HP
+  if (!out || (!out.name && !isFinite(out.level) && !isFinite(out.hp))) {
+    throw new Error("Parse failed");
+  }
+  return normalize(out);
 }
 
-/* ========================= Helpers ========================= */
+/* ================ Fetch with CORS fallbacks ================ */
 
-function assertAoN(url) {
+async function fetchAoN(rawUrl) {
+  let u;
+  try { u = new URL(rawUrl); } catch { throw new Error("Invalid URL"); }
+
+  // 1) Try direct (will usually fail due to CORS)
   try {
-    const u = new URL(url);
-    if (!/aonprd\.com$/i.test(u.hostname)) {
-      console.warn("Non-AoN host. Parser may fail.");
+    const r = await fetch(u.toString(), { mode: "cors", credentials: "omit" });
+    if (r.ok) {
+      const ct = r.headers.get("content-type") || "";
+      const text = await r.text();
+      if (ct.includes("text/html")) return { kind: "html", body: text };
+      return { kind: "text", body: text };
     }
-  } catch {
-    throw new Error("Invalid URL.");
+  } catch {}
+
+  // 2) CORS-proof text mirror: r.jina.ai (renders HTML to readable text)
+  // Important: use http:// for the mirrored target
+  const target = "http://" + u.host + u.pathname + (u.search || "");
+  const r2 = await fetch("https://r.jina.ai/http/" + encodeURIComponent(target), {
+    mode: "cors",
+    credentials: "omit"
+  });
+  if (!r2.ok) throw new Error("Fetch failed via mirror");
+  const text2 = await r2.text();
+  return { kind: "text", body: text2 };
+}
+
+/* ======================= HTML parsing ====================== */
+
+function parseHtml(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const scope = doc.querySelector("#ctl00_MainContent_DetailedOutput") || doc.body;
+
+  const name = pickNameHtml(doc, scope);
+  const level = pickNumber(scope, /\bCreature\s+(-?\d+)\b/i);
+  const traits = pickTraitsHtml(scope);
+  const ac = pickLabeledNumber(scope, /\bAC\b/i);
+  const hp = pickLabeledNumber(scope, /\bHP\b/i);
+  const speed = pickLabeledLine(scope, /\bSpeed\b/i);
+  const attacks = pickAttacks(scope);
+
+  return { name, level, traits, ac, hp, speed, attacks };
+}
+
+function pickNameHtml(doc, scope) {
+  const h1 = doc.querySelector("h1");
+  if (h1?.textContent) {
+    const t = clean(h1.textContent);
+    // AoN often shows “Name (Creature X)”
+    const m = t.match(/^(.+?)\s*\(Creature\s+(-?\d+)\)$/i);
+    return m ? m[1] : t;
   }
+  const head = scope.querySelector("h1, h2, .title, .page-title, strong, b");
+  return head ? clean(head.textContent) : null;
 }
-
-async function fetchWithFallback(url) {
-  // 1) Try direct CORS fetch
-  try {
-    const r = await fetch(url, { mode: "cors", credentials: "omit" });
-    if (r.ok) return await r.text();
-  } catch (_) {}
-
-  // 2) CORS-friendly proxy (stateless)
-  // allorigins returns raw content via /raw
-  const proxied = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-  const r2 = await fetch(proxied, { mode: "cors", credentials: "omit" });
-  if (!r2.ok) throw new Error("Fetch failed.");
-  return await r2.text();
+function pickNumber(scope, re) {
+  const node = findTextNode(scope, re);
+  if (!node) return null;
+  const m = node.textContent.match(re);
+  return m ? parseInt(m[1], 10) : null;
 }
+function pickTraitsHtml(scope) {
+  const links = Array.from(scope.querySelectorAll("a.trait, span.trait, .traits a, .traits span"))
+    .map(x => clean(x.textContent)).filter(Boolean);
+  if (links.length) return dedup(links);
 
-function pickScope(doc) {
-  // AoN main content wrapper commonly uses this id
-  const main = doc.querySelector("#ctl00_MainContent_DetailedOutput")
-            || doc.querySelector("#main")
-            || doc.body;
-  return main;
-}
-
-function extractName(scope, doc) {
-  // Prefer page <h1>; fallback: first strong heading-like element
-  const h1 = doc.querySelector("h1, .title, .page-title");
-  if (h1 && clean(h1.textContent)) return clean(h1.textContent);
-
-  const top = scope.querySelector("h1, h2, h3, strong, b");
-  if (top && clean(top.textContent)) return clean(top.textContent);
-
-  // Last resort: look for “Creature X” line and take preceding text in same block
-  const creatureLine = findTextNode(scope, /\bCreature\s+(-?\d+)\b/i);
-  if (creatureLine) {
-    const parent = creatureLine.parentElement;
-    const t = parent?.textContent || "";
-    const m = t.match(/^(.+?)\s+Creature\s+(-?\d+)/i);
-    if (m) return clean(m[1]);
-  }
-  return null;
-}
-
-function extractLevel(scope) {
-  // Typical AoN: "Creature X"
-  const node = findTextNode(scope, /\bCreature\s+(-?\d+)\b/i);
+  const node = findTextNode(scope, /^\s*Traits\s*[:：]/im);
   if (node) {
-    const m = node.textContent.match(/\bCreature\s+(-?\d+)\b/i);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-
-function extractTraits(scope) {
-  // Traits often appear as a comma list near the top, sometimes links with .trait
-  const tagLinks = Array.from(scope.querySelectorAll('a.trait, span.trait, .traits a, .traits span'))
-    .map(x => clean(x.textContent))
-    .filter(Boolean);
-  if (tagLinks.length) return dedup(tagLinks);
-
-  // Fallback: find a line starting with “Traits” or parenthesized after name
-  const traitsLine = findTextNode(scope, /^\s*Traits\s*[:：]\s*(.+)$/im);
-  if (traitsLine) {
-    const m = traitsLine.textContent.match(/^\s*Traits\s*[:：]\s*(.+)$/im);
-    if (m) return splitTraits(m[1]);
-  }
-
-  // Fallback 2: within first paragraph block parentheses
-  const firstPara = scope.querySelector("p");
-  if (firstPara) {
-    const m = firstPara.textContent.match(/\(([^)]+)\)/);
+    const line = node.parentElement?.textContent || node.textContent || "";
+    const m = line.match(/Traits\s*[:：]\s*(.+)$/i);
     if (m) return splitTraits(m[1]);
   }
   return [];
 }
-
-function extractNumberAfter(scope, labelRe) {
-  // e.g., AC 23, HP 120
+function pickLabeledNumber(scope, labelRe) {
   const node = findTextNode(scope, labelRe);
   if (!node) return null;
-  const text = node.parentElement?.textContent || node.textContent || "";
-  const m = text.match(new RegExp(labelRe.source + "\\s*(\\d+)", "i"));
+  const line = node.parentElement?.textContent || node.textContent || "";
+  const m = line.match(new RegExp(labelRe.source + "\\s*(\\d+)", "i"));
   return m ? parseInt(m[1], 10) : null;
 }
-
-function extractSpeed(scope) {
-  // Look for “Speed 25 feet” pattern
-  const node = findTextNode(scope, /\bSpeed\b/i);
+function pickLabeledLine(scope, labelRe) {
+  const node = findTextNode(scope, labelRe);
   if (!node) return null;
   const line = node.parentElement?.textContent || node.textContent || "";
-  const m = line.match(/\bSpeed\b\s*([^.\n\r]+)/i);
+  const m = line.match(new RegExp(labelRe.source + "\\s*([^\\n\\.]+)"));
   return m ? clean(m[1]) : null;
 }
+function pickAttacks(scope) {
+  const text = (scope.textContent || "");
+  return extractAttacksFromText(text);
+}
 
-function extractAttacks(scope) {
-  // Parse “Melee … +X (damage)”, “Ranged … +X (damage)”
-  const blocks = textBlocks(scope).slice(0, 40); // early content
-  const attacks = [];
-  const re = /(Melee|Ranged)\s+([^\n\r;•—-]+?)\s+([+−-]\d+)(?:[^(\n\r]*)\(([^)]+)\)/ig;
+/* ======================= TEXT parsing ====================== */
 
-  for (const blk of blocks) {
-    let m;
-    while ((m = re.exec(blk)) !== null) {
-      attacks.push({
-        name: clean(m[2]),
-        attack: normalizePlus(m[3]),
-        damage: clean(m[4])
-      });
-    }
+function parseText(text) {
+  // Header like: "Barghest (Creature 4)"
+  let name = null, level = null;
+
+  // First line with “Creature”
+  const creatureLine = (text.match(/^.*Creature\s+-?\d+.*$/gmi) || [null])[0];
+  if (creatureLine) {
+    const m = creatureLine.match(/^(.+?)\s*\(.*?Creature\s+(-?\d+)\)/i) ||
+              creatureLine.match(/^(.+?)\s+Creature\s+(-?\d+)/i);
+    if (m) { name = clean(m[1]); level = parseInt(m[2], 10); }
   }
 
-  // If none, try simpler “name +X” lines
+  // Traits
+  let traits = [];
+  const traitsLine = (text.match(/^\s*Traits\s*[:：]\s*(.+)$/gmi) || [null])[0];
+  if (traitsLine) {
+    const m = traitsLine.match(/Traits\s*[:：]\s*(.+)$/i);
+    if (m) traits = splitTraits(m[1]);
+  }
+
+  // AC, HP, Speed
+  const ac = firstInt(/(^|[^\w])AC\s+(\d+)/i, text);
+  const hp = firstInt(/(^|[^\w])HP\s+(\d+)/i, text);
+  const speedMatch = text.match(/(^|\n)\s*Speed\s*([^\n]+)/i);
+  const speed = speedMatch ? clean(speedMatch[2]) : null;
+
+  // Attacks
+  const attacks = extractAttacksFromText(text);
+
+  return { name, level, traits, ac, hp, speed, attacks };
+}
+
+/* ========================= Shared utils ==================== */
+
+function extractAttacksFromText(t) {
+  const attacks = [];
+  const re = /(Melee|Ranged)\s+([^\n\r;•—-]+?)\s+([+−-]\d{1,2})(?:[^(\n\r]*)\(([^)]+)\)/ig;
+  let m;
+  while ((m = re.exec(t)) !== null) {
+    attacks.push({ name: clean(m[2]), attack: normalizePlus(m[3]), damage: clean(m[4]) });
+  }
   if (!attacks.length) {
-    const simple = /(Melee|Ranged)\s+([^\n\r;•—-]+?)\s+([+−-]\d+)/ig;
-    for (const blk of blocks) {
-      let m;
-      while ((m = simple.exec(blk)) !== null) {
-        attacks.push({ name: clean(m[2]), attack: normalizePlus(m[3]), damage: null });
-      }
+    const simple = /(Melee|Ranged)\s+([^\n\r;•—-]+?)\s+([+−-]\d{1,2})/ig;
+    let m2;
+    while ((m2 = simple.exec(t)) !== null) {
+      attacks.push({ name: clean(m2[2]), attack: normalizePlus(m2[3]), damage: null });
     }
   }
   return coalesceAttacks(attacks);
 }
 
-/* ========================= Utilities ========================= */
+function firstInt(re, text) {
+  const m = text.match(re);
+  return m ? parseInt(m[2], 10) : null;
+}
 
 function findTextNode(root, regex) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (regex.test(node.textContent)) return node;
-  }
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let n; while ((n = w.nextNode())) { if (regex.test(n.textContent)) return n; }
   return null;
 }
-
-function textBlocks(scope) {
-  const sels = ["#ctl00_MainContent_DetailedOutput", ".stat-block", ".content", "article", "main", "body"];
-  const container = sels.map(s => scope.closest(s) || scope.querySelector(s)).find(Boolean) || scope;
-  // Split into manageable lines
-  const raw = container.textContent || "";
-  return raw.split(/\n{2,}/).map(t => cleanSpaces(t)).filter(Boolean);
-}
-
-function clean(txt) {
-  return (txt || "").replace(/\s+/g, " ").trim();
-}
-function cleanSpaces(txt) {
-  return (txt || "").replace(/[ \t]+/g, " ").replace(/\r/g, "").trim();
-}
-function splitTraits(s) {
-  return s.split(/[,•;]+/).map(t => clean(t)).filter(Boolean);
-}
-function dedup(arr) {
-  return Array.from(new Set(arr));
-}
-function normalizePlus(s) {
-  // Normalize Unicode minus
-  return (s || "").replace("−", "-");
-}
+function clean(s) { return (s || "").replace(/\s+/g, " ").trim(); }
+function splitTraits(s) { return s.split(/[,•;]+/).map(x => clean(x)).filter(Boolean); }
+function dedup(a) { return Array.from(new Set(a)); }
+function normalizePlus(s) { return (s || "").replace("−", "-"); }
 function coalesceAttacks(list) {
-  // Merge duplicates by name and highest attack bonus if needed
-  const map = new Map();
+  const by = new Map();
   for (const a of list) {
-    const key = a.name.toLowerCase();
-    if (!map.has(key)) map.set(key, a);
+    const k = (a.name || "").toLowerCase();
+    if (!by.has(k)) by.set(k, a);
     else {
-      const prev = map.get(key);
-      const aNum = parseInt((a.attack || "0").replace(/[+]/, ""), 10);
-      const pNum = parseInt((prev.attack || "0").replace(/[+]/, ""), 10);
-      map.set(key, aNum > pNum ? a : prev);
+      const prev = by.get(k);
+      const an = parseInt((a.attack || "0").replace("+",""),10);
+      const pn = parseInt((prev.attack || "0").replace("+",""),10);
+      if (an > pn) by.set(k, a);
     }
   }
-  return Array.from(map.values());
+  return Array.from(by.values());
+}
+function normalize(obj) {
+  return {
+    name: obj.name || "Unknown",
+    level: Number.isFinite(obj.level) ? obj.level : null,
+    traits: Array.isArray(obj.traits) ? obj.traits : [],
+    ac: Number.isFinite(obj.ac) ? obj.ac : null,
+    hp: Number.isFinite(obj.hp) ? obj.hp : null,
+    speed: obj.speed || null,
+    attacks: Array.isArray(obj.attacks) ? obj.attacks : []
+  };
 }
